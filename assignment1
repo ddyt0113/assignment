@@ -1,0 +1,68 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from bs4 import BeautifulSoup
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+
+# 设置 Selenium
+driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+url = "https://www.weather.gov.hk/sc/cis/dailyExtract.htm?y=2024&m=8"
+driver.get(url)
+
+# 等待页面加载
+time.sleep(5)  # 根据需要调整等待时间
+
+# 获取页面内容
+html = driver.page_source
+soup = BeautifulSoup(html, 'html.parser')
+
+# 查找所有具有特定类名的 <td> 标签
+normal_data = soup.find_all("td", class_="td1_normal_class")
+    
+# 提取数值
+values2 = [float(data.text.strip()) for data in normal_data if data.text.strip().isdigit()]
+
+
+# 打印结果
+#print(len(values2))  # 打印数量
+#print(values2)  # 打印所有数值
+
+values2 = values2[:31*3]
+Arr = np.array(values2).reshape(31,3)
+#print(Arr[:, 1])
+
+x = np.arange(1,32)
+y1 = Arr[:, 1]
+y2 = Arr[:, 0]
+
+df = pd.DataFrame({
+    'Time': x,
+    'Mean_Cloud': y1,
+    'Mean_Humidity': y2
+})
+
+# 使用 Seaborn 绘图
+sns.set_theme(style="darkgrid")
+plt.figure(figsize=(10, 6))  # 设置图形大小
+sns.lineplot(data=df, x='Time', y='Mean_Cloud', label='Mean Amount of Cloud', color='blue')
+
+# 绘制第二个 y 轴
+sns.lineplot(data=df, x='Time', y='Mean_Humidity', label='Mean Amount of Humidity', color='orange')
+
+# 添加数据点标记
+plt.scatter(x, y1, color='blue', marker='o')
+plt.scatter(x, y2, color='orange', marker='o')
+
+# 设置标题和标签
+plt.title("Mean Amount of Cloud and Humidity in August 2024")
+plt.xlabel("Day")
+plt.ylabel("Values(%)")
+plt.xticks(ticks=np.arange(1, 32))
+plt.show()
+
+# 关闭浏览器
+driver.quit()
